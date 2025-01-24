@@ -13,6 +13,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     // MARK: -
     // MARK: Variables
     
+    var resultsHandler: (() -> Void)?
+    
     private lazy var backgroundManager: BackgroundManager = {
         BackgroundManager(
             numberOfAvailableSegments: Constants.General.numberOfSegments,
@@ -42,9 +44,11 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     private var grassHeight: CGFloat = 0
     private var jumpHeight: CGFloat = 0
     private var isBackgroundMoving: Bool = true
-    private var gameOverView: UIView?
+    private var gameOverView: GameOverView?
     private var isSwipe: Bool = false
     private var isJumping: Bool = false
+    private var sessionStartDate: Date?
+    private let sessionService = GameSessionManager()
     
     // MARK: -
     // MARK: Overrided
@@ -56,10 +60,14 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         self.roadHeight = self.size.height * Constants.Dimensions.roadHeightMultiplier
         self.grassHeight = self.size.height * Constants.Dimensions.grassHeightMultiplier
         self.jumpHeight = self.size.height * Constants.Dimensions.jumpDistanceMultiplier
+        
+        self.gameOver()
                 
         self.backgroundManager.createBackground()
         self.characterManager.createCharacter()
         self.spawnCarsPeriodically()
+        
+        self.showGameOverScreen(isGameOver: false)
     }
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -160,35 +168,33 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         self.gameOver()
     }
     
-    private func showGameOverScreen() {
+    private func showGameOverScreen(isGameOver: Bool) {
         guard let view = self.view else { return }
         
-        self.gameOverView = UIView(frame: view.bounds)
-        guard let gameOverView = self.gameOverView else { return }
+        self.isUserInteractionEnabled = false
         
-        gameOverView.backgroundColor = UIColor.red.withAlphaComponent(0.7)
-
-        let gameOverLabel = UILabel()
-        gameOverLabel.text = "Game Over!"
-        gameOverLabel.textColor = .white
-        gameOverLabel.font = UIFont.boldSystemFont(ofSize: 40)
-        gameOverLabel.textAlignment = .center
-        gameOverLabel.translatesAutoresizingMaskIntoConstraints = false
-
-        gameOverView.addSubview(gameOverLabel)
-
-        NSLayoutConstraint.activate([
-            gameOverLabel.centerXAnchor.constraint(equalTo: gameOverView.centerXAnchor),
-            gameOverLabel.centerYAnchor.constraint(equalTo: gameOverView.centerYAnchor)
-        ])
+        self.gameOverView?.removeFromSuperview()
+        self.gameOverView = GameOverView(
+            frame: view.bounds,
+            onShowResults: { [weak self] in self?.showResultsScreen() },
+            onPlayAgain: { [weak self] in self?.restartGame() }
+        )
         
-        view.addSubview(gameOverView)
+        self.gameOverView?.titleLabel.isHidden = !isGameOver
+        
+        view.addSubview(self.gameOverView ?? UIView())
     }
     
     private func gameOver() {
         self.characterManager.isColliding = true
         self.isBackgroundMoving = false
-        self.showGameOverScreen()
+        self.showGameOverScreen(isGameOver: true)
+        
+        if let startDate = self.sessionStartDate {
+            let endDate = Date()
+            let duration = endDate.timeIntervalSince(startDate)
+            self.sessionService.saveSession(startDate: startDate, duration: duration)
+        }
     }
     
     private func startJumpCooldown() {
@@ -196,5 +202,32 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         DispatchQueue.main.asyncAfter(deadline: .now() + Constants.Timing.jumpDuration) {
             self.isJumping = false
         }
+    }
+    
+    private func showResultsScreen() {
+        self.resultsHandler?()
+    }
+    
+    private func restartGame() {
+        self.removeAllChildren()
+        self.removeAllActions()
+        self.gameOverView?.removeFromSuperview()
+        self.gameOverView = nil
+        
+        self.isUserInteractionEnabled = true
+        self.characterManager.isColliding = false
+        self.restartBackground()
+        self.isBackgroundMoving = true
+        self.characterManager.createCharacter()
+        self.spawnCarsPeriodically()
+        
+        self.sessionStartDate = Date()
+    }
+    
+    private func restartBackground() {
+        self.backgroundManager.rows = []
+        self.backgroundManager.segmentNodes.removeAll()
+        self.backgroundManager.lastUpdateTime = 0
+        self.backgroundManager.createBackground()
     }
 }

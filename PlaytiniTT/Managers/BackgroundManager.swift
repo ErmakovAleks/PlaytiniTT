@@ -14,7 +14,7 @@ class BackgroundManager {
     
     var segmentNodes = [Int: Set<SKSpriteNode>]()
     var rows = [SKSpriteNode]()
-    private var lastUpdateTime: TimeInterval = 0
+    var lastUpdateTime: TimeInterval = 0
     private weak var scene: SKScene?
     
     let roadTexture: SKTexture
@@ -56,7 +56,7 @@ class BackgroundManager {
                 )
             } else {
                 segment = SKSpriteNode(
-                    color: UIColor(red: 178/256, green: 202/256, blue: 138/255, alpha: 1.0),
+                    color: Constants.Colors.grass,
                     size: CGSize(width: scene.size.width, height: self.grassHeight)
                 )
                 

@@ -29,6 +29,7 @@ struct Constants {
         static let swipeMinimalLength: CGFloat = 10.0
         static let roadHeightMultiplier: CGFloat = 0.2
         static let grassHeightMultiplier: CGFloat = 0.1
+        static let buttonCornerRadius: CGFloat = 10.0
     }
     
     struct Speed {
@@ -49,5 +50,17 @@ struct Constants {
         static let none: UInt32 = 0
         static let character: UInt32 = 0b1
         static let car: UInt32 = 0b10
+    }
+    
+    struct Fonts {
+        
+        static let buttonTitleFont: UIFont = .systemFont(ofSize: 18.0, weight: .bold)
+        static let labelTitleFont: UIFont = .systemFont(ofSize: 40.0, weight: .bold)
+        static let labelFont: UIFont = .systemFont(ofSize: 16, weight: .light)
+    }
+    
+    struct Colors {
+        
+        static let grass = UIColor(red: 178/256, green: 202/256, blue: 138/255, alpha: 1.0)
     }
 }
